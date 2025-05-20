@@ -1,6 +1,5 @@
 from playwright.async_api import Playwright, async_playwright, Error
 import asyncio
-import os
 from .encryptPass import password, user, url
 import pandas as pd
 from dataHandle.data import format_data

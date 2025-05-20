@@ -61,4 +61,8 @@ def format_data(df):
     ws.oddHeader.center.alignment = Alignment(horizontal="center", vertical="center")
     ws.freeze_panes = ws["A2"]
 
+    last_column = get_column_letter(len(df.columns) + 1)
+    last_row = len(df.index) + 1
+    ws.print_area = f"A1:{str(last_column)}:{str(last_row)}"
+
     wb.save(file)
