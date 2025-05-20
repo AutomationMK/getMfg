@@ -1,6 +1,6 @@
 from playwright.async_api import Playwright, async_playwright, Error
 import asyncio
-from .encryptPass import password, user, url
+from .encryptPass import password, user, url, company
 import pandas as pd
 from dataHandle.data import format_data
 
@@ -48,7 +48,7 @@ async def login_e2(page):
     await page.get_by_role("textbox", name="").fill(user())
     await page.get_by_role("textbox", name="").fill(password())
     await page.get_by_role("button", name=" LOGIN").click()
-    await page.locator("#company").select_option("COLESQL")
+    await page.locator("#company").select_option(company())
     await page.get_by_role("link", name="Main").click()
     try:
         await page.get_by_text("This user is already logged").click(timeout=3000)
