@@ -1,19 +1,16 @@
-from playwright.async_api import Playwright, async_playwright, Error, expect
+from playwright.async_api import Playwright, async_playwright, Error
 import asyncio
-from datetime import date
-from dateutil.relativedelta import relativedelta
-from .encryptPass import password, user
 import os
+from .encryptPass import password, user, url
 import pandas as pd
-import time
 from dataHandle.data import format_data
 
 downloadTime = 300000  # 60000 = 1min so units are in milliseconds
 
 
 async def safe_goto(page, url, max_retries=10, delay=0.5):
-    """Function to be able to login to E2 using the browser provided by wsl
-    This fixes the issue where you may not connect to the colserv1 address
+    """Function to safely go to a specific url using playwright
+    This fixes the issue where you may not connect to the address
     on the first try. This will try about 10 times until you can connect"""
     for attempt in range(1, max_retries + 1):
         try:
@@ -274,7 +271,7 @@ async def run(playwright: Playwright) -> None:
     )
     page = await browser.new_page()
     try:
-        await safe_goto(page, "http://coleserv1/E2Shop/login", 10)
+        await safe_goto(page, url(), 10)
     except Exception as e:
         print(e)
     await login_e2(page)
