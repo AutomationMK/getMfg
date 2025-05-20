@@ -63,6 +63,7 @@ def format_data(df):
 
     last_column = get_column_letter(len(df.columns) + 1)
     last_row = len(df.index) + 1
-    ws.print_area = f"A1:{str(last_column)}:{str(last_row)}"
+    ws.print_area = "A1:" + last_column + str(last_row)
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
 
     wb.save(file)

@@ -1,9 +1,9 @@
 __pycache__/
 
 # ignore any user specific encryption
-pass.bin
-pass.key
-user.bin
-user.key
+pass.*
+user.*
+url.*
+company.*
 
 *.xlsx

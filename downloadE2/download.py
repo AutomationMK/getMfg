@@ -4,7 +4,7 @@ from .encryptPass import password, user, url, company
 import pandas as pd
 from dataHandle.data import format_data
 
-downloadTime = 300000  # 60000 = 1min so units are in milliseconds
+wait_time = 5000  # 60000 = 1min so units are in milliseconds
 
 
 async def safe_goto(page, url, max_retries=10, delay=0.5):
@@ -51,7 +51,7 @@ async def login_e2(page):
     await page.locator("#company").select_option(company())
     await page.get_by_role("link", name="Main").click()
     try:
-        await page.get_by_text("This user is already logged").click(timeout=3000)
+        await page.get_by_text("This user is already logged").click(timeout=wait_time)
         await page.get_by_role("button", name=" Yes").click()
     except Error as e:
         if "Timeout" in str(e):
@@ -61,7 +61,7 @@ async def login_e2(page):
 async def logout_e2(page):
     """Function to log out of E2, right now it only works for username max and
     this needs to be made more general for everyone"""
-    await page.get_by_role("link", name=" Welcome, MAX KRANKER ").click()
+    await page.locator("span.user-info.hidden-xs").click()
     await page.locator("#navbar-container").get_by_text("Logout").click()
 
 
@@ -154,7 +154,7 @@ async def loopThroughLineItems(page):
     while stillItems:
         try:
             await page.get_by_role("gridcell", name=f"{job_number}-0{itemIndex}").click(
-                timeout=1000
+                timeout=wait_time
             )
             await page.get_by_role("button", name=" Details").click()
             temp_total = await getmfg(page)
@@ -212,7 +212,7 @@ async def loopThroughJobs(page):
         if jobIndex == 1:
             try:
                 await page.locator(".tabulator-row > div:nth-child(3)").first.click(
-                    timeout=2000
+                    timeout=wait_time
                 )
                 await page.get_by_role("button", name=" View").click()
                 temp_totals = await loopThroughLineItems(page)
@@ -229,7 +229,7 @@ async def loopThroughJobs(page):
             try:
                 await page.locator(
                     f".tabulator-table > div:nth-child({jobIndex}) > div:nth-child(3)"
-                ).click(timeout=2000)
+                ).click(timeout=wait_time)
                 await page.get_by_role("button", name=" View").click()
                 temp_totals = await loopThroughLineItems(page)
                 if not temp_totals.empty:
