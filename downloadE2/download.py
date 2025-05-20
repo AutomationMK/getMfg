@@ -1,0 +1,297 @@
+from playwright.async_api import Playwright, async_playwright, Error, expect
+import asyncio
+from datetime import date
+from dateutil.relativedelta import relativedelta
+from .encryptPass import password, user
+import os
+import pandas as pd
+import time
+from dataHandle.data import format_data
+
+downloadTime = 300000  # 60000 = 1min so units are in milliseconds
+
+
+async def safe_goto(page, url, max_retries=10, delay=0.5):
+    """Function to be able to login to E2 using the browser provided by wsl
+    This fixes the issue where you may not connect to the colserv1 address
+    on the first try. This will try about 10 times until you can connect"""
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = await page.goto(url)
+            print("Navigation successful!")
+            return response  # or perform further actions with the response
+        except Error as e:
+            # Check if the error message indicates a DNS resolution issue
+            if "net::ERR_NAME_NOT_RESOLVED" in str(e):
+                print(
+                    f"Attempt {attempt} failed with error: {e}. Retrying in {delay} second(s)..."
+                )
+                await asyncio.sleep(delay)
+            else:
+                # If it's a different error, re-raise it
+                raise
+    # If all attempts fail, you can choose to raise an exception or handle it gracefully
+    raise Exception(f"Failed to navigate to {url} after {max_retries} attempts.")
+
+
+async def uncheck(page, locationName):
+    """Function to uncheck a checkbox element on E2
+    This function first tries to find the element using the locator function
+    if that does not work it will use the get_by_text function"""
+    checkbox = page.locator(locationName)
+    if await checkbox.count() == 0:
+        checkbox = page.get_by_text(locationName)
+    if await checkbox.is_checked():
+        await checkbox.click()
+
+
+async def login_e2(page):
+    """Function to log into E2 and this will use the seperate module encryptPass
+    for checking if a user name and password exists if not then it will
+    prompt the user to create one for their E2 account"""
+    await page.get_by_role("textbox", name="").fill(user())
+    await page.get_by_role("textbox", name="").fill(password())
+    await page.get_by_role("button", name=" LOGIN").click()
+    await page.locator("#company").select_option("COLESQL")
+    await page.get_by_role("link", name="Main").click()
+    try:
+        await page.get_by_text("This user is already logged").click(timeout=3000)
+        await page.get_by_role("button", name=" Yes").click()
+    except Error as e:
+        if "Timeout" in str(e):
+            pass
+
+
+async def logout_e2(page):
+    """Function to log out of E2, right now it only works for username max and
+    this needs to be made more general for everyone"""
+    await page.get_by_role("link", name=" Welcome, MAX KRANKER ").click()
+    await page.locator("#navbar-container").get_by_text("Logout").click()
+
+
+async def getmfg(page):
+    """Function to take mfg cost info from a job details page"""
+    job_number_box = page.locator("#cg_tbJobNumber div")
+    part_number_box = page.locator("#cg_tbPartNumber div")
+    customer_box = page.locator("#cg_tbCustomer div")
+    mfg_box = page.locator("#cg_curUDCurrency2 div").nth(1)
+    plt1_box = page.locator("#cg_tbUDNumber1 div").nth(1)
+    plt2_box = page.locator("#cg_tbUDNumber2 div").nth(1)
+    plt6_box = page.locator("#cg_tbUDNumber3 div").nth(1)
+    plt7_box = page.locator("#cg_tbUDNumber4 div").nth(1)
+    total_qty_box = page.locator("#cg_numQtyOrdered div").nth(1)
+    await job_number_box.click(click_count=3)
+    job_number = await page.evaluate("() => window.getSelection().toString()")
+    await part_number_box.click(click_count=3)
+    part_number = await page.evaluate("() => window.getSelection().toString()")
+    await customer_box.click(click_count=3)
+    customer = await page.evaluate("() => window.getSelection().toString()")
+    await mfg_box.click(click_count=3)
+    mfg = await page.evaluate("() => window.getSelection().toString()")
+    mfg = float(mfg.replace("$", "").replace(",", ""))
+    await plt1_box.click(click_count=3)
+    plt1 = await page.evaluate("() => window.getSelection().toString()")
+    await plt2_box.click(click_count=3)
+    plt2 = await page.evaluate("() => window.getSelection().toString()")
+    await plt6_box.click(click_count=3)
+    plt6 = await page.evaluate("() => window.getSelection().toString()")
+    await plt7_box.click(click_count=3)
+    plt7 = await page.evaluate("() => window.getSelection().toString()")
+    await total_qty_box.click(click_count=3)
+    total_qty = await page.evaluate("() => window.getSelection().toString()")
+    total_qty = total_qty.replace(",", "")
+    mfg_total = float(total_qty) * mfg
+    plt1_total = 0.0
+    plt2_total = 0.0
+    plt6_total = 0.0
+    plt7_total = 0.0
+    if plt1 != "":
+        plt1_total = mfg_total * float(plt1) * 0.01
+    if plt2 != "":
+        plt2_total = mfg_total * float(plt2) * 0.01
+    if plt6 != "":
+        plt6_total = mfg_total * float(plt6) * 0.01
+    if plt7 != "":
+        plt7_total = mfg_total * float(plt7) * 0.01
+    data = {
+        "Job Number": [job_number],
+        "Customer": [customer],
+        "Part Number": [part_number],
+        "Plt #1": [plt1_total],
+        "Plt #2": [plt2_total],
+        "Plt #6": [plt6_total],
+        "Plt #7": [plt7_total],
+    }
+    totals = pd.DataFrame(data)
+    await page.get_by_role("button", name=" Close").click()
+    return totals
+
+
+async def loopThroughLineItems(page):
+    itemIndex = 1
+    stillItems = True
+    customer_box = page.locator("#cg_tbCustomer div")
+    await customer_box.click(click_count=3)
+    customer = await page.evaluate("() => window.getSelection().toString()")
+    if "STOCK" in customer or "COLE CARBIDE" in customer:
+        await page.get_by_role("button", name=" Close").click()
+        return pd.DataFrame()
+
+    job_number_box = page.locator("#st-header-text")
+    await job_number_box.click(click_count=3)
+    job_number = await page.evaluate("() => window.getSelection().toString()")
+    job_number = (
+        job_number.replace("Job Status Inquiry : ", "")
+        .replace("quick view", "")
+        .strip()
+    )
+    columns = [
+        "Job Number",
+        "Customer",
+        "Part Number",
+        "Plt #1",
+        "Plt #2",
+        "Plt #6",
+        "Plt #7",
+    ]
+    totals = pd.DataFrame(columns=columns)
+    while stillItems:
+        try:
+            await page.get_by_role("gridcell", name=f"{job_number}-0{itemIndex}").click(
+                timeout=1000
+            )
+            await page.get_by_role("button", name=" Details").click()
+            temp_total = await getmfg(page)
+            totals = pd.concat([totals if not totals.empty else None, temp_total])
+        except Error as e:
+            if "Timeout" in str(e):
+                if itemIndex == 1:
+                    return pd.DataFrame()
+                stillItems = False
+            else:
+                raise
+        itemIndex += 1
+    await page.get_by_role("button", name=" Close").click()
+    return totals
+
+
+async def set_asc_sort(sort_locator):
+    sort_value = await sort_locator.get_attribute("aria-sort")
+    while sort_value != "asc":
+        await sort_locator.click()
+        sort_value = await sort_locator.get_attribute("aria-sort")
+
+
+async def loopThroughJobs(page):
+    """Function to loop through all job status jobs with the date
+    requested as user input"""
+    mfgDate = input("Please input the MFG$ date : ")
+    await page.get_by_role("button", name="").click()
+    await page.get_by_role("link", name=" Job Status").click()
+    await page.get_by_role("textbox", name="Search For").click()
+    await page.get_by_role("textbox", name="Search For").fill("")
+    await page.locator(".input-group-addon > .ace-icon").click()
+    await page.locator('input[name="daterangepicker_start"]').nth(1).click()
+    await page.locator('input[name="daterangepicker_start"]').nth(1).fill(mfgDate)
+    await page.locator('input[name="daterangepicker_end"]').nth(1).click()
+    await page.locator('input[name="daterangepicker_end"]').nth(1).fill(mfgDate)
+    await page.get_by_role("button", name="Apply").click()
+    await page.get_by_role("button", name=" Search").click()
+    sort_locator = page.get_by_role("columnheader", name="Order ")
+    await set_asc_sort(sort_locator)
+    jobIndex = 1
+    stillJobs = True
+    columns = [
+        "Job Number",
+        "Customer",
+        "Part Number",
+        "Plt #1",
+        "Plt #2",
+        "Plt #6",
+        "Plt #7",
+    ]
+    totals = pd.DataFrame(columns=columns)
+    temp_totals = pd.DataFrame(columns=columns)
+    while stillJobs:
+        if jobIndex == 1:
+            try:
+                await page.locator(".tabulator-row > div:nth-child(3)").first.click(
+                    timeout=2000
+                )
+                await page.get_by_role("button", name=" View").click()
+                temp_totals = await loopThroughLineItems(page)
+                if not temp_totals.empty:
+                    totals = pd.concat(
+                        [totals if not totals.empty else None, temp_totals]
+                    )
+                await set_asc_sort(sort_locator)
+            except Error as e:
+                print(f"{e}: no orders found")
+                await logout_e2(page)
+                raise ValueError
+        else:
+            try:
+                await page.locator(
+                    f".tabulator-table > div:nth-child({jobIndex}) > div:nth-child(3)"
+                ).click(timeout=2000)
+                await page.get_by_role("button", name=" View").click()
+                temp_totals = await loopThroughLineItems(page)
+                if not temp_totals.empty:
+                    totals = pd.concat(
+                        [totals if not totals.empty else None, temp_totals]
+                    )
+                await set_asc_sort(sort_locator)
+            except Error as e:
+                if "Timeout" in str(e):
+                    stillJobs = False
+                else:
+                    raise
+        jobIndex += 1
+    await page.get_by_role("button", name=" Close").click()
+    plt1_total = totals["Plt #1"].sum()
+    plt2_total = totals["Plt #2"].sum()
+    plt6_total = totals["Plt #6"].sum()
+    plt7_total = totals["Plt #7"].sum()
+    grand_total = plt1_total + plt2_total + plt6_total + plt7_total
+    data = {
+        "Job Number": [""],
+        "Customer": ["Plant Totals"],
+        "Part Number": [grand_total],
+        "Plt #1": [plt1_total],
+        "Plt #2": [plt2_total],
+        "Plt #6": [plt6_total],
+        "Plt #7": [plt7_total],
+    }
+    temp_totals = pd.DataFrame(data)
+    totals = pd.concat([totals if not totals.empty else None, temp_totals])
+    totals = totals.set_index("Job Number")
+    format_data(totals)
+
+
+async def run(playwright: Playwright) -> None:
+    browser = await playwright.chromium.launch(
+        headless=False,
+    )
+    page = await browser.new_page()
+    try:
+        await safe_goto(page, "http://coleserv1/E2Shop/login", 10)
+    except Exception as e:
+        print(e)
+    await login_e2(page)
+    try:
+        await loopThroughJobs(page)
+        await logout_e2(page)
+    except Error as e:
+        print(e)
+        await logout_e2(page)
+    # ---------------------
+    await browser.close()
+
+
+async def main_playwright():
+    async with async_playwright() as playwright:
+        await run(playwright)
+
+
+def download_data():
+    asyncio.run(main_playwright())
