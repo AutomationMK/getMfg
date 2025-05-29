@@ -107,16 +107,16 @@ async def getmfg(page: Page):
     plt2_total = 0.0
     plt6_total = 0.0
     plt7_total = 0.0
-    if plt1 != "" and "RESALE" not in product_code:
-        plt1_total = mfg_total * float(plt1) * 0.01
     if plt1 != "" and "RESALE" in product_code:
-        hs_total = mfg_total * float(plt1) * 0.01
+        hs_total = round(mfg_total * float(plt1) * 0.01, 2)
+    if plt1 != "" and "RESALE" not in product_code:
+        plt1_total = round(mfg_total * float(plt1) * 0.01, 2)
     if plt2 != "":
-        plt2_total = mfg_total * float(plt2) * 0.01
+        plt2_total = round(mfg_total * float(plt2) * 0.01, 2)
     if plt6 != "":
-        plt6_total = mfg_total * float(plt6) * 0.01
+        plt6_total = round(mfg_total * float(plt6) * 0.01, 2)
     if plt7 != "":
-        plt7_total = mfg_total * float(plt7) * 0.01
+        plt7_total = round(mfg_total * float(plt7) * 0.01, 2)
     data = {
         "Job Number": [job_number],
         "Customer": [customer],
