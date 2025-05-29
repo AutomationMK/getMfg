@@ -6,7 +6,7 @@ from openpyxl.styles import Side, Border, Alignment
 
 
 def format_data(df, date):
-    file = os.path.abspath(f"{date}-DAILY_INCOMING_MFG_WKSHT.xlsx")
+    file = os.path.abspath(f"{date.replace('/', '-')}_DAILY_INCOMING_MFG_WKSHT.xlsx")
     writer = pd.ExcelWriter(file)
     df.to_excel(writer, sheet_name="MFG Totals", engine="openpyxl")
     writer.close()

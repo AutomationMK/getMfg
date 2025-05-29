@@ -256,7 +256,7 @@ async def loopThroughJobs(page: Page):
     plt2_total = totals["Plt #2"].sum()
     plt6_total = totals["Plt #6"].sum()
     plt7_total = totals["Plt #7"].sum()
-    grand_total = plt1_total + plt2_total + plt6_total + plt7_total
+    grand_total = hs_total + plt1_total + plt2_total + plt6_total + plt7_total
     data = {
         "Job Number": [""],
         "Customer": ["Plant Totals"],
