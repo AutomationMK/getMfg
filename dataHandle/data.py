@@ -5,8 +5,8 @@ from openpyxl.utils.cell import get_column_letter
 from openpyxl.styles import Side, Border, Alignment
 
 
-def format_data(df):
-    file = os.path.abspath("DAILY INCOMING MFG WKSHT.xlsx")
+def format_data(df, date):
+    file = os.path.abspath(f"{date}-DAILY_INCOMING_MFG_WKSHT.xlsx")
     writer = pd.ExcelWriter(file)
     df.to_excel(writer, sheet_name="MFG Totals", engine="openpyxl")
     writer.close()
@@ -57,7 +57,7 @@ def format_data(df):
         length = max((cellSize(cell)) for cell in column_cells)
         ws.column_dimensions[get_column_letter(column_cells[0].column)].width = length
 
-    ws.oddHeader.center.text = "DAILY INCOMING MFG\nDATE: &[Date]"
+    ws.oddHeader.center.text = f"DAILY INCOMING MFG\nDATE: {date}"
     ws.oddHeader.center.alignment = Alignment(horizontal="center", vertical="center")
     ws.freeze_panes = ws["A2"]
 

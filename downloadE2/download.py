@@ -5,7 +5,7 @@ from .encryptPass import password, user, url, company
 import pandas as pd
 from dataHandle.data import format_data
 
-wait_time = 1500  # 60000 = 1min so units are in milliseconds
+wait_time = 3000  # 60000 = 1min so units are in milliseconds
 download_time = 30000  # 60000 = 1min so units are in milliseconds
 
 
@@ -270,7 +270,7 @@ async def loopThroughJobs(page: Page):
     temp_totals = pd.DataFrame(data)
     totals = pd.concat([totals if not totals.empty else None, temp_totals])
     totals = totals.set_index("Job Number")
-    format_data(totals)
+    format_data(totals, mfgDate)
 
 
 async def run(playwright: Playwright) -> None:
