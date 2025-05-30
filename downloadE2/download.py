@@ -272,6 +272,18 @@ async def loopThroughJobs(page: Page):
     plt2_total = totals["Plt #2"].sum()
     plt6_total = totals["Plt #6"].sum()
     plt7_total = totals["Plt #7"].sum()
+    csi_total = (
+        totals[totals["Customer"] == "CARBIDE SPECIALISTS, INC."]
+        .select_dtypes(include=["float"])
+        .sum()
+        .sum()
+    )
+    millstar_total = (
+        totals[totals["Customer"] == "MILLSTAR DIVISION OF"]
+        .select_dtypes(include=["float"])
+        .sum()
+        .sum()
+    )
     grand_total = hs_total + plt1_total + plt2_total + plt6_total + plt7_total
     data = {
         "Job Number": [""],
@@ -284,6 +296,30 @@ async def loopThroughJobs(page: Page):
         "Plt #7": [plt7_total],
     }
     temp_totals = pd.DataFrame(data)
+    totals = pd.concat([totals if not totals.empty else None, temp_totals])
+    csi_data = {
+        "Job Number": [""],
+        "Customer": ["CSI Total"],
+        "Part Number": [csi_total],
+        "HS": [0.0],
+        "Plt #1": [0.0],
+        "Plt #2": [0.0],
+        "Plt #6": [0.0],
+        "Plt #7": [0.0],
+    }
+    temp_totals = pd.DataFrame(csi_data)
+    totals = pd.concat([totals if not totals.empty else None, temp_totals])
+    millstar_data = {
+        "Job Number": [""],
+        "Customer": ["MILLSTAR Total"],
+        "Part Number": [millstar_total],
+        "HS": [0.0],
+        "Plt #1": [0.0],
+        "Plt #2": [0.0],
+        "Plt #6": [0.0],
+        "Plt #7": [0.0],
+    }
+    temp_totals = pd.DataFrame(millstar_data)
     totals = pd.concat([totals if not totals.empty else None, temp_totals])
     totals = totals.set_index("Job Number")
     format_data(totals, mfgDate)

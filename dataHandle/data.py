@@ -2,7 +2,7 @@ import pandas as pd
 import os
 from openpyxl import load_workbook
 from openpyxl.utils.cell import get_column_letter
-from openpyxl.styles import Side, Border, Alignment
+from openpyxl.styles import Side, Border, Alignment, PatternFill
 
 
 def format_data(df, date):
@@ -51,7 +51,10 @@ def format_data(df, date):
         except Exception:
             return False
 
-    coln = 0
+    missing_data_fill = PatternFill(
+        start_color="EE1111", end_color="EE1111", fill_type="solid"
+    )
+
     for col in ws.iter_cols(
         min_row=1,
         max_col=(len(df.columns) + 1),
@@ -60,8 +63,9 @@ def format_data(df, date):
         for cell in col:
             if is_float(cell.value):
                 cell.number_format = "$#,##0.00"
+            if cell.value is None and col[0].column_letter != "A":
+                cell.fill = missing_data_fill
             cell.border = Border(top=bd, left=bd, right=bd, bottom=bd)
-            coln = coln + 1
 
     # auto format column widths for both worksheets
     for column_cells in ws.columns:
