@@ -82,71 +82,73 @@ async def highlight_and_get(page: Page, location_name) -> str:
 
 async def getmfg(page: Page):
     """Function to take mfg cost info from a job details page"""
-    job_number_box = page.locator("#cg_tbJobNumber")
-    part_number_box = page.locator("#cg_tbPartNumber")
-    customer_box = page.locator("#cg_tbCustomer")
-    product_code_box = page.locator("#cg_tbProductCode")
-    mfg_box = page.locator("#cg_curUDCurrency2")
-    plt1_box = page.locator("#cg_tbUDNumber1")
-    plt2_box = page.locator("#cg_tbUDNumber2")
-    plt6_box = page.locator("#cg_tbUDNumber3")
-    plt7_box = page.locator("#cg_tbUDNumber4")
-    total_qty_box = page.locator("#cg_numQtyOrdered")
-    await job_number_box.click(click_count=3)
-    job_number = await page.evaluate("() => window.getSelection().toString()")
-    await part_number_box.click(click_count=3)
-    part_number = await page.evaluate("() => window.getSelection().toString()")
-    await customer_box.click(click_count=3)
-    customer = await page.evaluate("() => window.getSelection().toString()")
-    await product_code_box.click(click_count=3)
-    product_code = await page.evaluate("() => window.getSelection().toString()")
-    await mfg_box.click(click_count=3)
-    mfg = await page.evaluate("() => window.getSelection().toString()")
+    # take all values on the page needed for mfg $
+    job_number = await highlight_and_get(page, "#cg_tbJobNumber")
+    part_number = await highlight_and_get(page, "#cg_tbPartNumber")
+    customer = await highlight_and_get(page, "#cg_tbCustomer")
+    product_code = await highlight_and_get(page, "cg_tbProductCode")
+    mfg = await highlight_and_get(page, "cg_curUDCurrency2")
+    plt1 = await highlight_and_get(page, "#cg_tbUDNumber1")
+    plt2 = await highlight_and_get(page, "#cg_tbUDNumber2")
+    plt6 = await highlight_and_get(page, "#cg_tbUDNumber3")
+    plt7 = await highlight_and_get(page, "#cg_tbUDNumber4")
+    total_qty = await highlight_and_get(page, "#cg_numQtyOrdered")
+    """If mfg value is empty then the user needs to be aware of that in order
+    to fix that manually; 
+    Note: in the future there should potentially be an automated response
+    rather then just notifying the person using the program"""
     if mfg == "":
         Error(f"Error: on job {job_number} **** NO MFG $ NUMBER GIVEN ****")
-        return pd.DataFrame()
+        data = {
+            "Job Number": [job_number],
+            "Customer": [customer],
+            "Part Number": [part_number],
+            "HS": "ERROR",
+            "Plt #1": "ERROR",
+            "Plt #2": "ERROR",
+            "Plt #6": "ERROR",
+            "Plt #7": "ERROR",
+        }
+        totals = pd.DataFrame(data)
+        await page.get_by_role("button", name=" Close").click()
+        return totals
     else:
+        """format some values to be more usable as numbers
+        $ and , need to be removed in this case for some values"""
         mfg = float(mfg.replace("$", "").replace(",", ""))
-    await plt1_box.click(click_count=3)
-    plt1 = await page.evaluate("() => window.getSelection().toString()")
-    await plt2_box.click(click_count=3)
-    plt2 = await page.evaluate("() => window.getSelection().toString()")
-    await plt6_box.click(click_count=3)
-    plt6 = await page.evaluate("() => window.getSelection().toString()")
-    await plt7_box.click(click_count=3)
-    plt7 = await page.evaluate("() => window.getSelection().toString()")
-    await total_qty_box.click(click_count=3)
-    total_qty = await page.evaluate("() => window.getSelection().toString()")
-    total_qty = total_qty.replace(",", "")
-    mfg_total = float(total_qty) * mfg
-    plt1_total = 0.0
-    hs_total = 0.0
-    plt2_total = 0.0
-    plt6_total = 0.0
-    plt7_total = 0.0
-    if plt1 != "" and "RESALE" in product_code:
-        hs_total = round(mfg_total * float(plt1) * 0.01, 2)
-    if plt1 != "" and "RESALE" not in product_code:
-        plt1_total = round(mfg_total * float(plt1) * 0.01, 2)
-    if plt2 != "":
-        plt2_total = round(mfg_total * float(plt2) * 0.01, 2)
-    if plt6 != "":
-        plt6_total = round(mfg_total * float(plt6) * 0.01, 2)
-    if plt7 != "":
-        plt7_total = round(mfg_total * float(plt7) * 0.01, 2)
-    data = {
-        "Job Number": [job_number],
-        "Customer": [customer],
-        "Part Number": [part_number],
-        "HS": [hs_total],
-        "Plt #1": [plt1_total],
-        "Plt #2": [plt2_total],
-        "Plt #6": [plt6_total],
-        "Plt #7": [plt7_total],
-    }
-    totals = pd.DataFrame(data)
-    await page.get_by_role("button", name=" Close").click()
-    return totals
+        total_qty = int(total_qty.replace(",", ""))
+        # set the default values of each plant total to zero
+        plt1_total = 0.0
+        hs_total = 0.0
+        plt2_total = 0.0
+        plt6_total = 0.0
+        plt7_total = 0.0
+        # calculate all of the totals for each plant
+        mfg_total = total_qty * mfg
+        if plt1 != "" and "RESALE" in product_code:
+            hs_total = round(mfg_total * float(plt1) * 0.01, 2)
+        if plt1 != "" and "RESALE" not in product_code:
+            plt1_total = round(mfg_total * float(plt1) * 0.01, 2)
+        if plt2 != "":
+            plt2_total = round(mfg_total * float(plt2) * 0.01, 2)
+        if plt6 != "":
+            plt6_total = round(mfg_total * float(plt6) * 0.01, 2)
+        if plt7 != "":
+            plt7_total = round(mfg_total * float(plt7) * 0.01, 2)
+        # initialize a pandas data frame that will return with the values
+        data = {
+            "Job Number": [job_number],
+            "Customer": [customer],
+            "Part Number": [part_number],
+            "HS": [hs_total],
+            "Plt #1": [plt1_total],
+            "Plt #2": [plt2_total],
+            "Plt #6": [plt6_total],
+            "Plt #7": [plt7_total],
+        }
+        totals = pd.DataFrame(data)
+        await page.get_by_role("button", name=" Close").click()
+        return totals
 
 
 async def get_grid_rows(page: Page, locator_id: str, column_name: str) -> pd.Series:
@@ -169,16 +171,11 @@ async def get_grid_rows(page: Page, locator_id: str, column_name: str) -> pd.Ser
 
 async def loopThroughLineItems(page):
     """Function to loop through line items and get mfg $ data"""
-    customer_box = page.locator("#cg_tbCustomer")
-    await customer_box.click(click_count=3)
-    customer = await page.evaluate("() => window.getSelection().toString()")
+    customer = await highlight_and_get(page, "#cg_tbCustromer")
     if "STOCK" in customer or "COLE CARBIDE" in customer:
         await page.get_by_role("button", name=" Close").click()
         return pd.DataFrame()
-
-    job_number_box = page.locator("#st-header-text")
-    await job_number_box.click(click_count=3)
-    job_number = await page.evaluate("() => window.getSelection().toString()")
+    job_number = await highlight_and_get(page, "#st-header-text")
     job_number = (
         job_number.replace("Job Status Inquiry : ", "")
         .replace("quick view", "")
@@ -270,11 +267,11 @@ async def loopThroughJobs(page: Page):
                 print(e)
                 raise
     await page.get_by_role("button", name=" Close").click()
-    hs_total = totals["HS"].sum()
-    plt1_total = totals["Plt #1"].sum()
-    plt2_total = totals["Plt #2"].sum()
-    plt6_total = totals["Plt #6"].sum()
-    plt7_total = totals["Plt #7"].sum()
+    hs_total = totals[totals["HS"] != "ERROR"].sum()
+    plt1_total = totals[totals["Plt #1"] != "ERROR"].sum()
+    plt2_total = totals[totals["Plt #2"] != "ERROR"].sum()
+    plt6_total = totals[totals["Plt #6"] != "ERROR"].sum()
+    plt7_total = totals[totals["Plt #7"] != "ERROR"].sum()
     grand_total = hs_total + plt1_total + plt2_total + plt6_total + plt7_total
     data = {
         "Job Number": [""],
