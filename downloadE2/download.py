@@ -67,18 +67,31 @@ async def uncheck(page: Page, locationName: str):
         await checkbox.click()
 
 
+async def highlight_and_get(page: Page, location_name) -> str:
+    """Function to highlight and return the value of a un-editable label box
+    Note: It is good practice to use the highest up div id seen in the HTML
+          source code for that item. Please enter the location name with
+          #(id) on that div
+          On E2 I've used an example id of #cg_tbPartNumber and etc...
+          Sometimes you need to use the nth"""
+    locator_box = page.locator(location_name)
+    await locator_box.click(click_count=3)
+    value = await page.evaluate("() => window.getSelection().toString()")
+    return value
+
+
 async def getmfg(page: Page):
     """Function to take mfg cost info from a job details page"""
-    job_number_box = page.locator("#cg_tbJobNumber div")
-    part_number_box = page.locator("#cg_tbPartNumber div")
-    customer_box = page.locator("#cg_tbCustomer div")
+    job_number_box = page.locator("#cg_tbJobNumber")
+    part_number_box = page.locator("#cg_tbPartNumber")
+    customer_box = page.locator("#cg_tbCustomer")
     product_code_box = page.locator("#cg_tbProductCode")
-    mfg_box = page.locator("#cg_curUDCurrency2 div").nth(1)
-    plt1_box = page.locator("#cg_tbUDNumber1 div").nth(1)
-    plt2_box = page.locator("#cg_tbUDNumber2 div").nth(1)
-    plt6_box = page.locator("#cg_tbUDNumber3 div").nth(1)
-    plt7_box = page.locator("#cg_tbUDNumber4 div").nth(1)
-    total_qty_box = page.locator("#cg_numQtyOrdered div").nth(1)
+    mfg_box = page.locator("#cg_curUDCurrency2")
+    plt1_box = page.locator("#cg_tbUDNumber1")
+    plt2_box = page.locator("#cg_tbUDNumber2")
+    plt6_box = page.locator("#cg_tbUDNumber3")
+    plt7_box = page.locator("#cg_tbUDNumber4")
+    total_qty_box = page.locator("#cg_numQtyOrdered")
     await job_number_box.click(click_count=3)
     job_number = await page.evaluate("() => window.getSelection().toString()")
     await part_number_box.click(click_count=3)
@@ -89,7 +102,11 @@ async def getmfg(page: Page):
     product_code = await page.evaluate("() => window.getSelection().toString()")
     await mfg_box.click(click_count=3)
     mfg = await page.evaluate("() => window.getSelection().toString()")
-    mfg = float(mfg.replace("$", "").replace(",", ""))
+    if mfg == "":
+        Error(f"Error: on job {job_number} **** NO MFG $ NUMBER GIVEN ****")
+        return pd.DataFrame()
+    else:
+        mfg = float(mfg.replace("$", "").replace(",", ""))
     await plt1_box.click(click_count=3)
     plt1 = await page.evaluate("() => window.getSelection().toString()")
     await plt2_box.click(click_count=3)
@@ -151,7 +168,8 @@ async def get_grid_rows(page: Page, locator_id: str, column_name: str) -> pd.Ser
 
 
 async def loopThroughLineItems(page):
-    customer_box = page.locator("#cg_tbCustomer div")
+    """Function to loop through line items and get mfg $ data"""
+    customer_box = page.locator("#cg_tbCustomer")
     await customer_box.click(click_count=3)
     customer = await page.evaluate("() => window.getSelection().toString()")
     if "STOCK" in customer or "COLE CARBIDE" in customer:
@@ -185,7 +203,8 @@ async def loopThroughLineItems(page):
             await page.get_by_role("gridcell", name=row_name).click(timeout=wait_time)
             await page.get_by_role("button", name=" Details").click()
             temp_total = await getmfg(page)
-            totals = pd.concat([totals if not totals.empty else None, temp_total])
+            if not temp_total.empty:
+                totals = pd.concat([totals if not totals.empty else None, temp_total])
         except Error as e:
             if "timeout" in str(e):
                 if row_id == 1:

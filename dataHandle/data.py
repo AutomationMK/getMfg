@@ -39,8 +39,17 @@ def format_data(df, date):
             numChar = float(len(str(value)))
         if numChar > 25.0:
             numChar = 25.0
+        if numChar < 6.0:
+            numChar = 6.0
         cellSize = (letterSize * numChar) + (edgeSize * 2.0)
         return cellSize
+
+    def is_float(s):
+        try:
+            float(s)
+            return True
+        except Exception:
+            return False
 
     coln = 0
     for col in ws.iter_cols(
@@ -49,6 +58,8 @@ def format_data(df, date):
         max_row=(len(df.index) + 1),
     ):
         for cell in col:
+            if is_float(cell.value):
+                cell.number_format = "$#,##0.00"
             cell.border = Border(top=bd, left=bd, right=bd, bottom=bd)
             coln = coln + 1
 
