@@ -3,3 +3,4 @@ python -m venv venv
 pip install -r requirements.txt
 playwright install chromium
 deactivate
+Read-Host -Prompt "Press Enter to close the window..."

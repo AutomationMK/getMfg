@@ -38,6 +38,7 @@ Example running on Linux...
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+playwright install chromium
 deactivate
 ```
 
@@ -46,6 +47,7 @@ Example running in windows powershell...
 python -m venv venv
 .\venv\Scripts\activate.ps1
 pip install -r requirements.txt
+playwright install chromium
 deactivate
 ```
 
