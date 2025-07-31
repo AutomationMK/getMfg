@@ -156,9 +156,8 @@ async def getmfg(page: Page):
 
 async def get_grid_rows(page: Page, locator_id: str, column_name: str) -> pd.Series:
     """Function to get grid data for the line items of a job inquiry"""
-    download_name = (
-        os.path.abspath(".") + "/assets/temp_data/" + "lineItem-GridExport.xlsx"
-    )
+    home_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    download_name = home_path + "/assets/temp_data/" + "lineItem-GridExport.xlsx"
     try:
         async with page.expect_download(timeout=download_time) as download_info:
             await page.locator(locator_id).click()

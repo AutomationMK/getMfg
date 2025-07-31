@@ -2,7 +2,9 @@ import os
 from cryptography.fernet import Fernet
 from getpass import getpass
 
-data_folder = os.path.abspath("assets/password/")
+data_folder = (
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + "/assets/password"
+)
 password_binary_filename = "/pass.bin"
 password_key_filename = "/pass.key"
 user_binary_filename = "/user.bin"
