@@ -5,7 +5,7 @@ if [[ ! -d $(pwd)/venv ]]; then
 fi
 
 source $(pwd)/venv/bin/activate
-pip install -r requirements.txt
+pip install -r $(pwd)/requirements.txt
 playwright install chromium
 deactivate
 
