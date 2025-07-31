@@ -18,40 +18,28 @@ running this program.
 * pandas version(2.2.3)
 * numpy version(1.26.4)
 * openpyxl version(3.1.3)
-* WSL (Windows Subsystem For Linux) Unsure if this program can just run locally on Windows
+* WSL (Windows Subsystem For Linux) or any other linux distribution
 
-### Installing
+### Installing manually
 
-* How/where to download your program
-* Any modifications needed to be made to files/folders
+Example running on Linux...
 
-### Executing program
+* pip will need to be ran for installing any dependencies in the requirements.txt file
+
+```bash
+# in the main project folder as the working directory
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+playwright install chromium
+deactivate
+```
+
+### Executing program manually
 * The program needs to be executed in the main project folder
 * The program also needs it's virtual environment activated
-* pip will need to be ran for installing any dependencies in the
-requirements.txt file
-
-Example running on Linux...
-
-```bash
-# in the main project folder as the working directory
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-playwright install chromium
-deactivate
-```
-
-Example running in windows powershell...
-```powercode
-python -m venv venv
-.\venv\Scripts\activate.ps1
-pip install -r requirements.txt
-playwright install chromium
-deactivate
-```
-
 * Finally run the program by main.py from the main project folder
+
 Example running on Linux...
 
 ```bash
@@ -60,14 +48,6 @@ source venv/bin/activate
 python main.py
 deactivate
 ```
-
-Example running in windows powershell...
-```powercode
-.\venv\Scripts\activate.ps1
-python main.py
-deactivate
-```
-
 ### Authors
 
 Max Kranker (<max.kranker@colecarbide.com>)
